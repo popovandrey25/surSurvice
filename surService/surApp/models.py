@@ -34,7 +34,7 @@ class Vote(models.Model):
         return f"{self.user.username}'s vote for {self.choice.name} in question: {self.question.title}"
 
 
-
+# Пример запроса POST
 # {
 #     "title": "Название вашего голосования",
 #     "description": "Описание вашего голосования",
