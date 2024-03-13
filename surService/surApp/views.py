@@ -1,10 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import *
 from rest_framework.permissions import IsAuthenticated
 from .serializers import *
-from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveUpdateAPIView, DestroyAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveUpdateAPIView, DestroyAPIView, GenericAPIView
 from django.http import Http404
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
@@ -31,9 +34,12 @@ class UserSurveysView(ListAPIView):
 
 class VotingListByUserAPIView(ListAPIView):
     serializer_class = VotingSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user_id = self.kwargs['user_id']
+        if user_id != self.request.user.id:
+            raise Http404("Страница не найдена")
         return Voting.objects.filter(author=user_id)
 
 
@@ -76,3 +82,42 @@ class VotingDeleteAPIView(DestroyAPIView):
         if instance.author != self.request.user:
             raise PermissionDenied("You do not have permission to delete this voting.")
         instance.delete()
+
+
+class UserRegistrationAPIView(CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class UserLoginAPIView(GenericAPIView):
+    serializer_class = UserLoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=status.HTTP_200_OK)
+
+
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Получаем refresh token из запроса
+            refresh_token = request.data.get('refresh_token')
+            if not refresh_token:
+                return Response({'error': 'Отсутствует refresh token'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Удаление токена из черного списка
+            token = RefreshToken(refresh_token)
+            OutstandingToken.objects.filter(token=token).delete()
+
+            return Response({'detail': 'Вы успешно вышли из учетной записи.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
