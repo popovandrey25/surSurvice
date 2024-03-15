@@ -3,14 +3,6 @@ from rest_framework import serializers
 from .models import *
 
 
-class SurveySerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    class Meta:
-        model = Survey
-        fields = ['id', 'user', 'title']
-
-
 class ChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice

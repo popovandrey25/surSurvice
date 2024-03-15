@@ -21,17 +21,6 @@ class HomeView(APIView):
             return Response({"message": "Войти"}, status=status.HTTP_200_OK)
 
 
-class UserSurveysView(ListAPIView):
-    serializer_class = SurveySerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user_id = self.kwargs['user_id']
-        if user_id != self.request.user.id:
-            raise Http404("Страница не найдена")
-        return Survey.objects.filter(user_id=user_id)
-
-
 class VotingListByUserAPIView(ListAPIView):
     serializer_class = VotingSerializer
     permission_classes = [IsAuthenticated]
@@ -41,15 +30,6 @@ class VotingListByUserAPIView(ListAPIView):
         if user_id != self.request.user.id:
             raise Http404("Страница не найдена")
         return Voting.objects.filter(author=user_id)
-
-
-class SurveyCreateAPIView(CreateAPIView):
-    queryset = Survey.objects.all()
-    serializer_class = SurveySerializer
-    permission_classes = [IsAuthenticated]  # Убедитесь, что пользователь аутентифицирован, прежде чем создавать опросы
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 
 class VotingCreateAPIView(CreateAPIView):
