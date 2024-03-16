@@ -23,7 +23,7 @@ class HomeView(APIView):
 
 class VotingListByUserAPIView(ListAPIView):
     serializer_class = VotingSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user_id = self.kwargs['user_id']
@@ -35,7 +35,7 @@ class VotingListByUserAPIView(ListAPIView):
 class VotingCreateAPIView(CreateAPIView):
     queryset = Voting.objects.all()
     serializer_class = VotingSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -44,7 +44,7 @@ class VotingCreateAPIView(CreateAPIView):
 class VotingUpdateAPIView(RetrieveUpdateAPIView):
     queryset = Voting.objects.all()
     serializer_class = VotingSerializer
-    permission_classes = [IsAuthenticated,]
+    # permission_classes = [IsAuthenticated,]
 
     def perform_update(self, serializer):
         # Проверяем, что текущий пользователь является автором опроса
@@ -55,7 +55,7 @@ class VotingUpdateAPIView(RetrieveUpdateAPIView):
 class VotingDeleteAPIView(DestroyAPIView):
     queryset = Voting.objects.all()
     serializer_class = VotingSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def perform_destroy(self, instance):
         # Проверяем, что текущий пользователь является автором опроса
