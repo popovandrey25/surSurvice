@@ -81,6 +81,7 @@ class UserLoginAPIView(GenericAPIView):
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
+            'user_id': str(user.id),
         }, status=status.HTTP_200_OK)
 
 
@@ -96,7 +97,7 @@ class LogoutAPIView(APIView):
 
             # Удаление токена из черного списка
             token = RefreshToken(refresh_token)
-            OutstandingToken.objects.filter(token=token).delete()
+            token.blacklist()
 
             return Response({'detail': 'Вы успешно вышли из учетной записи.'}, status=status.HTTP_200_OK)
         except Exception as e:

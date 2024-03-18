@@ -9,6 +9,7 @@ class Survey(models.Model):
         verbose_name = "Опрос"
         verbose_name_plural = "Опросы"
 
+
 class Voting(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField()
@@ -17,6 +18,7 @@ class Voting(models.Model):
 
 class Question(models.Model):
     title = models.CharField(max_length=100)
+    type = models.CharField(max_length=50, default='checkbox')
     voting = models.ForeignKey(Voting, related_name='questions', on_delete=models.CASCADE)
 
 
