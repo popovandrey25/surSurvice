@@ -44,6 +44,7 @@ class Vote(models.Model):
 #     "questions": [
 #         {
 #             "title": "Вопрос 1",
+#             "type": "checkbox",
 #             "choices": [
 #                 {"name": "Вариант ответа 1"},
 #                 {"name": "Вариант ответа 2"}
@@ -51,6 +52,7 @@ class Vote(models.Model):
 #         },
 #         {
 #             "title": "Вопрос 2",
+#             "type": "checkbox",
 #             "choices": [
 #                 {"name": "Вариант ответа 1"},
 #                 {"name": "Вариант ответа 2"},
