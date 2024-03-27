@@ -87,3 +87,16 @@ class UserLoginSerializer(serializers.Serializer):
         if user and user.is_active:
             return user
         raise serializers.ValidationError("Неверные учетные данные")
+
+
+class VoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vote
+        fields = ['user', 'question', 'choice']
+
+class BulkVoteSerializer(serializers.ListSerializer):
+    child = VoteSerializer()
+
+    def create(self, validated_data):
+        votes = [Vote(**item) for item in validated_data]
+        return Vote.objects.bulk_create(votes)

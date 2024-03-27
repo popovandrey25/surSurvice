@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializers import *
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveUpdateAPIView, DestroyAPIView, GenericAPIView, \
     RetrieveAPIView
-from django.http import Http404
+from django.http import Http404, JsonResponse
 
 
 class HomeView(APIView):
@@ -100,3 +101,41 @@ class LogoutAPIView(APIView):
             return Response({'detail': 'Вы успешно вышли из учетной записи.'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VoteBulkCreateView(CreateAPIView):
+    queryset = Vote.objects.all()
+    serializer_class = VoteSerializer
+
+    def post(self, request, *args, **kwargs):
+        voting_id = self.kwargs.get('pk')
+        voting = get_object_or_404(Voting, pk=voting_id)
+        questions = voting.questions.all()
+        if not questions:
+            return Response({"error": "No questions found for this voting"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        question_ids = [item['question'].id for item in serializer.validated_data]
+        if set(question_ids) != set(questions.values_list('id', flat=True)):
+            return Response({"error": "Not all questions belong to the specified voting"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
+class DetailStatisticAPIView(RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = VoteSerializer
+    queryset = Vote.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        voting_id = self.kwargs.get('pk')
+        votes = Vote.objects.filter(question__voting_id=voting_id)  # Получаем все голоса для определенного опроса
+        serializer = self.get_serializer(votes, many=True)
+        return Response(serializer.data)

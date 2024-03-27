@@ -31,5 +31,6 @@ class VotingAdmin(admin.ModelAdmin):
 # Зарегистрируйте модель с кастомизированным админским классом
 admin.site.register(Survey, SurveyAdmin)
 admin.site.register(Voting, VotingAdmin)
+admin.site.register(Vote)
 # admin.site.register(Voting, VotingAdmin)
 # admin.site.register(Vote, VoteAdmin)

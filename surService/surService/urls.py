@@ -14,4 +14,6 @@ urlpatterns = [
     path('api/register/', UserRegistrationAPIView.as_view(), name='register'),
     path('api/login/', UserLoginAPIView.as_view(), name='login'),
     path('api/logout/', LogoutAPIView.as_view(), name='logout'),
+    path('api/answer-voting/<int:pk>/', VoteBulkCreateView.as_view(), name='do_response'),
+    path('api/detail-statistic/<int:pk>/', DetailStatisticAPIView.as_view(), name='detail-statistic'),
 ]
