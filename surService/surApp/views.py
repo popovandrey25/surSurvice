@@ -103,6 +103,20 @@ class LogoutAPIView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class VotingDetailView(RetrieveAPIView):
+    serializer_class = VotingSerializer
+    queryset = Voting.objects.all()
+
+    def get_object(self):
+        voting_id = self.kwargs.get('pk')
+        return get_object_or_404(self.get_queryset(), pk=voting_id)
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+
 class VoteBulkCreateView(CreateAPIView):
     queryset = Vote.objects.all()
     serializer_class = VoteSerializer
@@ -117,10 +131,10 @@ class VoteBulkCreateView(CreateAPIView):
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
 
-        # question_ids = [item['question'].id for item in serializer.validated_data]
-        # if set(question_ids) != set(questions.values_list('id', flat=True)):
-        #     return Response({"error": "Not all questions belong to the specified voting"},
-        #                         status=status.HTTP_400_BAD_REQUEST)
+        question_ids = [item['question'].id for item in serializer.validated_data]
+        if not set(question_ids).issubset(set(questions.values_list('id', flat=True))):
+            return JsonResponse({"error": "Not all questions belong to the specified voting"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
