@@ -62,3 +62,9 @@ class Vote(models.Model):
 #         }
 #     ]
 # }
+
+# Пример отправки варианта ответа
+# [
+#     {"user": 1, "question": 86, "choice": 190},
+#     {"user": 1, "question": 87, "choice": 192}
+# ]

@@ -117,10 +117,10 @@ class VoteBulkCreateView(CreateAPIView):
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
 
-        question_ids = [item['question'].id for item in serializer.validated_data]
-        if set(question_ids) != set(questions.values_list('id', flat=True)):
-            return Response({"error": "Not all questions belong to the specified voting"},
-                                status=status.HTTP_400_BAD_REQUEST)
+        # question_ids = [item['question'].id for item in serializer.validated_data]
+        # if set(question_ids) != set(questions.values_list('id', flat=True)):
+        #     return Response({"error": "Not all questions belong to the specified voting"},
+        #                         status=status.HTTP_400_BAD_REQUEST)
 
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
