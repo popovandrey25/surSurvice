@@ -12,7 +12,6 @@ class ChoiceSerializer(serializers.ModelSerializer):
         question = self.context['question']
         return Choice.objects.create(question=question, **validated_data)
 
-
 class QuestionSerializer(serializers.ModelSerializer):
     choices = ChoiceSerializer(many=True)
 
@@ -27,43 +26,56 @@ class QuestionSerializer(serializers.ModelSerializer):
             Choice.objects.create(question=question, **choice_data)
         return question
 
-    def update(self, instance, validated_data):
-        choices_data = validated_data.pop('choices', [])
-        instance = super().update(instance, validated_data)
-        instance.choices.all().delete()  # Удаляем все старые варианты ответов
-        for choice_data in choices_data:
-            Choice.objects.create(question=instance, **choice_data)
-        return instance
-
-
-class VotingSerializer(serializers.ModelSerializer):
-    author = serializers.PrimaryKeyRelatedField(read_only=True)
+class PageSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True)
 
     class Meta:
-        model = Voting
-        depth = 1
-        fields = ['id', 'title', 'description', 'author', 'questions']
+        model = Page
+        fields = ['id', 'order', 'title', 'questions']
 
     def create(self, validated_data):
         questions_data = validated_data.pop('questions')
-        voting = Voting.objects.create(**validated_data)
+        page = Page.objects.create(**validated_data)
         for question_data in questions_data:
-            choices_data = question_data.pop('choices')
-            question = Question.objects.create(voting=voting, **question_data)
+            choices_data = question_data.pop('choices', [])
+            question = Question.objects.create(page=page, **question_data)
             for choice_data in choices_data:
                 Choice.objects.create(question=question, **choice_data)
+        return page
+
+class VotingSerializer(serializers.ModelSerializer):
+    author = serializers.PrimaryKeyRelatedField(read_only=True)
+    pages = PageSerializer(many=True)
+
+    class Meta:
+        model = Voting
+        fields = ['id', 'title', 'description', 'author', 'pages']
+
+    def create(self, validated_data):
+        pages_data = validated_data.pop('pages')
+        voting = Voting.objects.create(**validated_data)
+        for page_data in pages_data:
+            questions_data = page_data.pop('questions', [])
+            page = Page.objects.create(voting=voting, **page_data)
+            for question_data in questions_data:
+                choices_data = question_data.pop('choices', [])
+                question = Question.objects.create(page=page, **question_data)
+                for choice_data in choices_data:
+                    Choice.objects.create(question=question, **choice_data)
         return voting
 
     def update(self, instance, validated_data):
-        questions_data = validated_data.pop('questions', [])
+        pages_data = validated_data.pop('pages', [])
         instance = super().update(instance, validated_data)
-        instance.questions.all().delete()  # Удаляем все старые вопросы
-        for question_data in questions_data:
-            choices_data = question_data.pop('choices', [])
-            question = Question.objects.create(voting=instance, **question_data)
-            for choice_data in choices_data:
-                Choice.objects.create(question=question, **choice_data)
+        instance.pages.all().delete()  # Удаляем все старые страницы
+        for page_data in pages_data:
+            questions_data = page_data.pop('questions', [])
+            page = Page.objects.create(voting=instance, **page_data)
+            for question_data in questions_data:
+                choices_data = question_data.pop('choices', [])
+                question = Question.objects.create(page=page, **question_data)
+                for choice_data in choices_data:
+                    Choice.objects.create(question=question, **choice_data)
         return instance
 
 

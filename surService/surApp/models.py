@@ -16,12 +16,15 @@ class Voting(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     is_submit = models.BooleanField(default=False)
 
+class Page(models.Model):
+    voting = models.ForeignKey(Voting, related_name='pages', on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    order = models.IntegerField(default=0)
 
 class Question(models.Model):
     title = models.CharField(max_length=100)
     type = models.CharField(max_length=50, default='checkbox')
-    voting = models.ForeignKey(Voting, related_name='questions', on_delete=models.CASCADE)
-
+    page = models.ForeignKey(Page, related_name='questions', on_delete=models.CASCADE)
 
 class Choice(models.Model):
     name = models.CharField(max_length=150)
@@ -39,25 +42,66 @@ class Vote(models.Model):
 
 # Пример запроса POST для создания опроса
 # {
-#     "title": "Название вашего голосования",
-#     "description": "Описание вашего голосования",
+#     "title": "Название опросаИЗМ",
+#     "description": "Описание опроса",
 #     "author": 1,
-#     "questions": [
+#     "pages": [
 #         {
-#             "title": "Вопрос 1",
-#             "type": "checkbox",
-#             "choices": [
-#                 {"name": "Вариант ответа 1"},
-#                 {"name": "Вариант ответа 2"}
+#             "title": "Заголовок страницы 1ИЗМ",
+#             "questions": [
+#                 {
+#                     "title": "Вопрос 1 на странице 1ИЗМ",
+#                     "type": "checkbox",
+#                     "choices": [
+#                         {
+#                             "name": "Вариант ответа 1ИЗМ"
+#                         },
+#                         {
+#                             "name": "Вариант ответа 2"
+#                         }
+#                     ]
+#                 },
+#                 {
+#                     "title": "Вопрос 2 на странице 1",
+#                     "type": "checkbox",
+#                     "choices": [
+#                         {
+#                             "name": "Вариант ответа 1"
+#                         },
+#                         {
+#                             "name": "Вариант ответа 2"
+#                         }
+#                     ]
+#                 }
 #             ]
 #         },
 #         {
-#             "title": "Вопрос 2",
-#             "type": "checkbox",
-#             "choices": [
-#                 {"name": "Вариант ответа 1"},
-#                 {"name": "Вариант ответа 2"},
-#                 {"name": "Вариант ответа 3"}
+#             "title": "Заголовок страницы 2",
+#             "questions": [
+#                 {
+#                     "title": "Вопрос 1 на странице 2",
+#                     "type": "checkbox",
+#                     "choices": [
+#                         {
+#                             "name": "Вариант ответа 1"
+#                         },
+#                         {
+#                             "name": "Вариант ответа 2"
+#                         }
+#                     ]
+#                 },
+#                 {
+#                     "title": "Вопрос 2 на странице 2",
+#                     "type": "checkbox",
+#                     "choices": [
+#                         {
+#                             "name": "Вариант ответа 1"
+#                         },
+#                         {
+#                             "name": "Вариант ответа 2"
+#                         }
+#                     ]
+#                 }
 #             ]
 #         }
 #     ]

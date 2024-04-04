@@ -118,22 +118,25 @@ class VotingDetailView(RetrieveAPIView):
 
 
 class VoteBulkCreateView(CreateAPIView):
-    queryset = Vote.objects.all()
+    queryset = Voting.objects.all()
     serializer_class = VoteSerializer
 
     def post(self, request, *args, **kwargs):
         voting_id = self.kwargs.get('pk')
         voting = get_object_or_404(Voting, pk=voting_id)
-        questions = voting.questions.all()
-        if not questions:
-            return Response({"error": "No questions found for this voting"}, status=status.HTTP_400_BAD_REQUEST)
+        pages = voting.pages.all()
+        if not pages:
+            return Response({"error": "No pages found for this voting"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
 
-        question_ids = [item['question'].id for item in serializer.validated_data]
-        if not set(question_ids).issubset(set(questions.values_list('id', flat=True))):
-            return JsonResponse({"error": "Not all questions belong to the specified voting"},
+        # Проверяем, принадлежат ли все вопросы к определенным страницам опроса
+        for vote_data in serializer.validated_data:
+            question_id = vote_data['question']
+            question = get_object_or_404(Question, pk=question_id.id)
+            if question.page.voting != voting:
+                return Response({"error": "Question does not belong to the specified voting"},
                                 status=status.HTTP_400_BAD_REQUEST)
 
         self.perform_create(serializer)
@@ -150,6 +153,6 @@ class DetailStatisticAPIView(RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         voting_id = self.kwargs.get('pk')
-        votes = Vote.objects.filter(question__voting_id=voting_id)  # Получаем все голоса для определенного опроса
+        votes = Vote.objects.filter(question__page__voting_id=voting_id)  # Фильтруем по идентификатору опроса
         serializer = self.get_serializer(votes, many=True)
         return Response(serializer.data)
