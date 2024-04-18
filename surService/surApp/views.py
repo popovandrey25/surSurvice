@@ -156,3 +156,26 @@ class DetailStatisticAPIView(RetrieveAPIView):
         votes = Vote.objects.filter(question__page__voting_id=voting_id)  # Фильтруем по идентификатору опроса
         serializer = self.get_serializer(votes, many=True)
         return Response(serializer.data)
+
+
+class PollDetailAPIView(APIView):
+    def get(self, request, poll_id, format=None):
+        questions = Question.objects.filter(page__voting_id=poll_id)
+        data = []
+        for question in questions:
+            question_data = {
+                'question_id': question.id,
+                'question_title': question.title,
+                'choices': []
+            }
+            choices = Choice.objects.filter(question_id=question.id)
+            for choice in choices:
+                votes_count = Vote.objects.filter(choice_id=choice.id).count()
+                choice_data = {
+                    'choice_id': choice.id,
+                    'choice_title': choice.name,
+                    'votes_count': votes_count
+                }
+                question_data['choices'].append(choice_data)
+            data.append(question_data)
+        return Response(data)
