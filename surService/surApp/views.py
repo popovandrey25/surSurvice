@@ -166,6 +166,7 @@ class PollDetailAPIView(APIView):
             question_data = {
                 'question_id': question.id,
                 'question_title': question.title,
+                'question_type': question.type,
                 'choices': []
             }
             choices = Choice.objects.filter(question_id=question.id)
