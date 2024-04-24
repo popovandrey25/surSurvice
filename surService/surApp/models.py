@@ -15,6 +15,8 @@ class Voting(models.Model):
     description = models.TextField()
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     is_submit = models.BooleanField(default=False)
+    question_answer_pairs = models.TextField(blank=True)
+    hidden_pages = models.TextField(blank=True)
 
 class Page(models.Model):
     voting = models.ForeignKey(Voting, related_name='pages', on_delete=models.CASCADE)
