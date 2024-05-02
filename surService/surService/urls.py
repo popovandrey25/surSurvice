@@ -17,5 +17,6 @@ urlpatterns = [
     path('api/answer-voting/<int:pk>/', VoteBulkCreateView.as_view(), name='do_response'),
     path('api/response-voting/<int:pk>/', VotingDetailView.as_view(), name='voting-detail'),
     path('api/detail-statistic/<int:pk>/', DetailStatisticAPIView.as_view(), name='detail-statistic'),
-    path('api/poll-statistic/<int:poll_id>/', PollDetailAPIView.as_view(), name='poll-statistic')
+    path('api/poll-statistic/<int:poll_id>/', PollDetailAPIView.as_view(), name='poll-statistic'),
+    path('api/add_logic/<int:pk>/', VotingUpdateLogicView.as_view(), name='add-logic'),
 ]

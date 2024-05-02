@@ -8,7 +8,7 @@ from .models import *
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializers import *
 from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveUpdateAPIView, DestroyAPIView, GenericAPIView, \
-    RetrieveAPIView
+    RetrieveAPIView, UpdateAPIView
 from django.http import Http404, JsonResponse
 
 
@@ -180,3 +180,22 @@ class PollDetailAPIView(APIView):
                 question_data['choices'].append(choice_data)
             data.append(question_data)
         return Response(data)
+
+
+class VotingUpdateLogicView(UpdateAPIView):
+    queryset = Voting.objects.all()
+    serializer_class = VotingSerializer
+    lookup_field = 'pk'  # или какой-то другой атрибут, используемый для идентификации объекта Voting
+
+    # Переопределение метода partial_update для обновления только указанных полей
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()  # Получаем объект Voting для обновления
+        # Обновляем только указанные поля, если они присутствуют в запросе
+        if 'question_answer_pairs' in request.data:
+            instance.question_answer_pairs = request.data['question_answer_pairs']
+        if 'hidden_pages' in request.data:
+            instance.hidden_pages = request.data['hidden_pages']
+        # Сохраняем изменения
+        instance.save()
+        # Возвращаем успешный ответ
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)

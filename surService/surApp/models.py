@@ -114,3 +114,9 @@ class Vote(models.Model):
 #     {"user": 1, "question": 86, "choice": 190},
 #     {"user": 1, "question": 87, "choice": 192}
 # ]
+
+# Пример добавления логики (PATCH)
+# {
+#     "question_answer_pairs": "[[1, 2], [2, 3], [3, 1]]",
+#     "pages": "[[2], [3, 4], [3, 4]]"
+# }
