@@ -49,7 +49,7 @@ class VotingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Voting
-        fields = ['id', 'title', 'description', 'author', 'question_answer_pairs', 'hidden_pages', 'pages']
+        fields = ['id', 'title', 'description', 'author', 'is_submit', 'question_answer_pairs', 'hidden_pages', 'pages']
 
     def create(self, validated_data):
         pages_data = validated_data.pop('pages')
