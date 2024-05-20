@@ -199,3 +199,9 @@ class VotingUpdateLogicView(UpdateAPIView):
         instance.save()
         # Возвращаем успешный ответ
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
+
+class ValidateTokenView(APIView):
+
+    def get(self, request):
+        return Response({'detail': 'Token is valid.'})

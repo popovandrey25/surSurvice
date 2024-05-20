@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/detail-statistic/<int:pk>/', DetailStatisticAPIView.as_view(), name='detail-statistic'),
     path('api/poll-statistic/<int:poll_id>/', PollDetailAPIView.as_view(), name='poll-statistic'),
     path('api/add_logic/<int:pk>/', VotingUpdateLogicView.as_view(), name='add-logic'),
+    path('api/token/validate/', ValidateTokenView.as_view(), name='token_validate'),
 ]
