@@ -201,6 +201,22 @@ class VotingUpdateLogicView(UpdateAPIView):
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
 
+class VotingUpdateSubmitView(UpdateAPIView):
+    queryset = Voting.objects.all()
+    serializer_class = VotingSerializer
+    lookup_field = 'pk'  # или какой-то другой атрибут, используемый для идентификации объекта Voting
+
+    # Переопределение метода partial_update для обновления только указанных полей
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()  # Получаем объект Voting для обновления
+        # Обновляем только указанные поля, если они присутствуют в запросе
+        if 'is_submit' in request.data:
+            instance.is_submit = request.data['is_submit']
+        instance.save()
+        # Возвращаем успешный ответ
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
+
 class ValidateTokenView(APIView):
 
     def get(self, request):
