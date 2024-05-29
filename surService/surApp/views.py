@@ -1,4 +1,6 @@
+import pandas as pd
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -221,3 +223,35 @@ class ValidateTokenView(APIView):
 
     def get(self, request):
         return Response({'detail': 'Token is valid.'})
+
+
+class ExportVotesToExcelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, voting_id, *args, **kwargs):
+        voting = get_object_or_404(Voting, id=voting_id)
+        votes = Vote.objects.filter(question__page__voting_id=voting_id).select_related('question', 'choice', 'user')
+
+        # Собираем данные для экспорта
+        data = []
+        for vote in votes:
+            data.append({
+                'User': vote.user.username,
+                'Question ID': vote.question.id,
+                'Question': vote.question.title,
+                'Choice ID': vote.choice.id,
+                'Choice': vote.choice.name,
+            })
+
+        # Преобразуем данные в DataFrame
+        df = pd.DataFrame(data)
+
+        # Создаем Excel файл в памяти
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename=votes_voting_{voting_id}.xlsx'
+
+        # Записываем DataFrame в Excel файл
+        with pd.ExcelWriter(response, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Votes')
+
+        return response
