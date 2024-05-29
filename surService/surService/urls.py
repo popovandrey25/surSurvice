@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/submit/<int:pk>/', VotingUpdateSubmitView.as_view(), name='submit'),
     path('api/token/validate/', ValidateTokenView.as_view(), name='token_validate'),
     path('api/export-votes/<int:voting_id>/', ExportVotesToExcelView.as_view(), name='export-votes'),
+    path('api/export-voting-json/<int:voting_id>/', ExportVotingToJsonFileView.as_view(), name='export-voting-json'),
 ]

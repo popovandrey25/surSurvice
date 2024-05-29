@@ -1,4 +1,6 @@
+import io
 import pandas as pd
+import json
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from rest_framework.views import APIView
@@ -254,4 +256,29 @@ class ExportVotesToExcelView(APIView):
         with pd.ExcelWriter(response, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Votes')
 
+        return response
+
+
+class ExportVotingToJsonFileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, voting_id, *args, **kwargs):
+        # Проверка существования опроса
+        voting = get_object_or_404(Voting, id=voting_id)
+
+        # Используем сериализатор для сериализации данных
+        serializer = VotingSerializer(voting)
+        data = serializer.data
+
+        # Создание JSON-строки
+        json_data = json.dumps(data, ensure_ascii=False, indent=4)
+
+        # Создание буфера для файла
+        buffer = io.BytesIO()
+        buffer.write(json_data.encode('utf-8'))
+        buffer.seek(0)
+
+        # Создание HTTP-ответа с файлом для скачивания
+        response = HttpResponse(buffer, content_type='application/json')
+        response['Content-Disposition'] = f'attachment; filename="voting_{voting_id}.json"'
         return response
