@@ -1,114 +1,134 @@
-from django.contrib.auth import authenticate
+import json
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
-from .models import *
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from .models import Choice, Page, Question, Vote, Voting
+from .services import create_voting, update_voting
+
+User = get_user_model()
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False, min_value=1)
+
     class Meta:
         model = Choice
         fields = ['id', 'name']
 
-    def create(self, validated_data):
-        question = self.context['question']
-        return Choice.objects.create(question=question, **validated_data)
 
 class QuestionSerializer(serializers.ModelSerializer):
-    choices = ChoiceSerializer(many=True)
+    id = serializers.IntegerField(required=False, min_value=1)
+    type = serializers.ChoiceField(choices=['checkbox', 'radio'], default='checkbox')
+    choices = ChoiceSerializer(many=True, allow_empty=False)
 
     class Meta:
         model = Question
         fields = ['id', 'title', 'type', 'choices']
 
-    def create(self, validated_data):
-        choices_data = validated_data.pop('choices')
-        question = Question.objects.create(**validated_data)
-        for choice_data in choices_data:
-            Choice.objects.create(question=question, **choice_data)
-        return question
 
 class PageSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False, min_value=1)
+    order = serializers.IntegerField(min_value=0, default=0)
     questions = QuestionSerializer(many=True)
 
     class Meta:
         model = Page
         fields = ['id', 'order', 'title', 'questions']
 
-    def create(self, validated_data):
-        questions_data = validated_data.pop('questions')
-        page = Page.objects.create(**validated_data)
-        for question_data in questions_data:
-            choices_data = question_data.pop('choices', [])
-            question = Question.objects.create(page=page, **question_data)
-            for choice_data in choices_data:
-                Choice.objects.create(question=question, **choice_data)
-        return page
 
 class VotingSerializer(serializers.ModelSerializer):
-    author = serializers.PrimaryKeyRelatedField(read_only=True)
     pages = PageSerializer(many=True)
 
     class Meta:
         model = Voting
-        fields = ['id', 'title', 'description', 'author', 'is_submit', 'question_answer_pairs', 'hidden_pages', 'pages']
+        fields = ['id', 'title', 'description', 'author', 'is_submit',
+                  'question_answer_pairs', 'hidden_pages', 'pages']
+        read_only_fields = ['author', 'is_submit']
+
+    def validate_pages(self, value):
+        # PATCH may omit pages, but a supplied tree must be complete, even though
+        # DRF otherwise propagates partial=True into its nested serializers.
+        serializer = PageSerializer(data=value, many=True)
+        serializer.is_valid(raise_exception=True)
+        return serializer.validated_data
+
+    def validate(self, attrs):
+        for field in ('question_answer_pairs', 'hidden_pages'):
+            if field in attrs:
+                try:
+                    value = json.loads(attrs[field] or '[]')
+                except ValueError:
+                    raise serializers.ValidationError({field: 'Ожидается JSON-массив.'})
+                if not isinstance(value, list):
+                    raise serializers.ValidationError({field: 'Ожидается JSON-массив.'})
+        return attrs
 
     def create(self, validated_data):
-        pages_data = validated_data.pop('pages')
-        voting = Voting.objects.create(**validated_data)
-        for page_data in pages_data:
-            questions_data = page_data.pop('questions', [])
-            page = Page.objects.create(voting=voting, **page_data)
-            for question_data in questions_data:
-                choices_data = question_data.pop('choices', [])
-                question = Question.objects.create(page=page, **question_data)
-                for choice_data in choices_data:
-                    Choice.objects.create(question=question, **choice_data)
-        return voting
+        data = validated_data.copy()
+        return create_voting(author=data.pop('author'), data=data)
 
     def update(self, instance, validated_data):
-        pages_data = validated_data.pop('pages', [])
-        instance = super().update(instance, validated_data)
-        instance.pages.all().delete()  # Удаляем все старые страницы
-        for page_data in pages_data:
-            questions_data = page_data.pop('questions', [])
-            page = Page.objects.create(voting=instance, **page_data)
-            for question_data in questions_data:
-                choices_data = question_data.pop('choices', [])
-                question = Question.objects.create(page=page, **question_data)
-                for choice_data in choices_data:
-                    Choice.objects.create(question=question, **choice_data)
-        return instance
+        return update_voting(voting_id=instance.pk, data=validated_data)
+
+
+class PublicVotingSerializer(serializers.ModelSerializer):
+    pages = PageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Voting
+        fields = ['id', 'title', 'description', 'question_answer_pairs', 'hidden_pages', 'pages']
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['id', 'username', 'email', 'password']
+        read_only_fields = ['id']
+        extra_kwargs = {'password': {'write_only': True, 'trim_whitespace': False}}
+
+    def validate(self, attrs):
+        user = User(username=attrs['username'], email=attrs.get('email', ''))
+        try:
+            validate_password(attrs['password'], user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({'password': exc.messages})
+        return attrs
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
+        return User.objects.create_user(**validated_data)
 
 
-class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField()
+class UserLoginSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['user_id'] = self.user.pk
+        return data
 
-    def validate(self, data):
-        user = authenticate(**data)
-        if user and user.is_active:
-            return user
-        raise serializers.ValidationError("Неверные учетные данные")
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+
+class AnswerSerializer(serializers.Serializer):
+    question = serializers.IntegerField(min_value=1)
+    choice = serializers.IntegerField(min_value=1)
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict) and 'user' in data:
+            raise serializers.ValidationError({'user': 'Пользователь определяется по авторизации.'})
+        return super().to_internal_value(data)
+
+
+class SubmissionSerializer(serializers.Serializer):
+    answers = AnswerSerializer(many=True, allow_empty=False)
 
 
 class VoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vote
-        fields = ['user', 'question', 'choice']
-
-class BulkVoteSerializer(serializers.ListSerializer):
-    child = VoteSerializer()
-
-    def create(self, validated_data):
-        votes = [Vote(**item) for item in validated_data]
-        return Vote.objects.bulk_create(votes)
+        fields = ['id', 'user', 'question', 'choice']
+        read_only_fields = fields
